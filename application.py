@@ -2,7 +2,8 @@ import mysql.connector
 from mysql.connector import MySQLConnection
 from mysql.connector.cursor import MySQLCursor
 
-from config import Config
+from models.lutypetable import LuTypeTable
+from models.config import Config
 
 def get_connection(autocommit: bool = True) -> MySQLConnection:
     config = Config()
@@ -13,10 +14,7 @@ def get_connection(autocommit: bool = True) -> MySQLConnection:
         "password": config.tidb_password,
         "database": config.tidb_db_name,
         "autocommit": autocommit,
-        # mysql-connector-python will use C extension by default,
-        # to make this example work on all platforms more easily,
-        # we choose to use pure python implementation.
-        "use_pure": True,
+        "use_pure": True,  # Use the pure Python implementation
     }
 
     if config.ca_path:
@@ -25,29 +23,35 @@ def get_connection(autocommit: bool = True) -> MySQLConnection:
         db_conf["ssl_ca"] = config.ca_path
     return mysql.connector.connect(**db_conf)
 
-def get_count(cursor: MySQLCursor, tableName) -> int:
+def get_count(cursor: MySQLCursor, tableName: str) -> int:
     cursor.execute(f"SELECT count(*) FROM {tableName}")
-    return cursor.fetchone()["count(*)"]
+    return cursor.fetchone()[0]  # Accessing the first item in the tuple
 
-def get_lu_type_table_row_by_id(cursor: MySQLCursor, id: int, tableName) -> dict:
-    cursor.execute(f"SELECT id, TypeID FROM {tableName} WHERE id = %s", (id,))
-
-      TypeID INT AUTO_INCREMENT PRIMARY KEY,
-  TypeName VARCHAR(255),
-  TypeNameVector VECTOR(512),
-  Description VARCHAR(255),
-  DescriptionVector VECTOR(512),
-  create_by VARCHAR(255),
-  create_dt DATETIME DEFAULT CURRENT_TIMESTAMP,
-  modified_by VARCHAR(255),
-  modified_dt DATETIME,
-  active_flg BOOL DEFAULT TRUE
-
-
-    return cursor.fetchone()
+def get_lu_type_table_row_by_id(cursor: MySQLCursor, typeID: int, tableName: str) -> LuTypeTable:
+    cursor.execute(f"SELECT * FROM {tableName} WHERE TypeID = %s", (typeID,))
+    row = cursor.fetchone()
+    if row:
+        return LuTypeTable(
+            TypeID=row[0], 
+            TypeName=row[1],
+            TypeNameVector=row[2],
+            Description=row[3],
+            DescriptionVector=row[4],
+            create_by=row[5],
+            create_dt=row[6],
+            modified_by=row[7],
+            modified_dt=row[8],
+            active_flg=row[9]
+        )
+    else:
+        return None
 
 if __name__ == "__main__":
+    typeID = 1
     tableName = 'lu_emotion_type'
-    recreate_table()
-    simple_example()
-    trade_example()
+    connection = get_connection()
+    cursor = connection.cursor()
+    lu_type = get_lu_type_table_row_by_id(cursor, typeID, tableName)
+    print(lu_type.to_dict())
+    cursor.close()
+    connection.close()

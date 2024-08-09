@@ -16,7 +16,7 @@ import mysql.connector
 from mysql.connector import MySQLConnection
 from mysql.connector.cursor import MySQLCursor
 
-from config import Config
+from models.config import Config
 
 
 def get_connection(autocommit: bool = True) -> MySQLConnection:
