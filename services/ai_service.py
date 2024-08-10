@@ -12,13 +12,18 @@ class AiService:
             "sentence": text
         }
         response = requests.post(api_url, json=payload, headers=headers)
+
         if response.status_code == 200:
             vector_data = response.json()
-            return vector_data.get('vector'), vector_data.get('id')
+            vector = vector_data.get('vector')
+            if vector is not None:
+                return VectorData(vector=vector, id=vector_data.get('id'))
+            else:
+                logging.error(f"Vector data missing in the response for text: {text}")
+                return None
         else:
             logging.error(f"Failed to vectorize text: {text} with status code {response.status_code}")
-            return None, id
-        
+            return None
 
     def process_vector_data(vector_response):
         # Assuming vector_response is the tuple (vector_list, id)

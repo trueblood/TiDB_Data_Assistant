@@ -3,6 +3,7 @@ from mysql.connector.cursor import MySQLCursor
 from models.lutypetable import LuTypeTable
 import logging
 from mysql.connector import MySQLConnection, Error as MySQLError
+import json
 
 class DataService:
     def __init__(self, db_service):
@@ -50,13 +51,16 @@ class DataService:
 
         cursor = connection.cursor()
         try:
+            # Convert list vectors to JSON strings for storage
+            typeNameVector_str = json.dumps(luTypeTable.TypeNameVector)
+            descriptionVector_str = json.dumps(luTypeTable.DescriptionVector)
             # Use a parameterized query to safely insert values and prevent SQL injection
             update_query = f"""
                 UPDATE {tableName}
-                SET TypeNameVector = %s, DescriptionVector = %s
+                SET TypeNameVector = %s, DescriptionVector = %s, modified_by = %s, modified_dt = %s
                 WHERE TypeID = %s
             """
-            cursor.execute(update_query, (luTypeTable.TypeNameVector, luTypeTable.DescriptionVector, luTypeTable.TypeID))
+            cursor.execute(update_query, (typeNameVector_str, descriptionVector_str, luTypeTable.modified_by, luTypeTable.modified_dt, luTypeTable.TypeID))
             connection.commit()  # Commit the transaction
             logging.info(f"Record successfully updated in database for TypeID {typeID} in TableName {tableName}")
             return True

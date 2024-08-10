@@ -8,6 +8,7 @@ import services.database_service as DatabaseService
 from flask import request, jsonify
 from services.data_service import DataService
 from services.ai_service import AiService
+from datetime import datetime
 
 class DataController:
     def __init__(self, db_service: DatabaseService):
@@ -36,28 +37,26 @@ class DataController:
                 
                 for typeID in typeIDs:
                     lu_type = DataService.get_lu_type_table_row_by_id(cursor, typeID, tableName)
-
-                    print("lu_type is ", lu_type.to_dict())
+                    #print("lu_type is ", lu_type.to_dict())
                     if lu_type:
                         # Vectorize TypeName
                         vectorized_type_name = AiService.call_vectorization_api(lu_type.TypeID, lu_type.TypeName)
-                        #vectorized_type_name = "([0.05985705554485321, -0.07013780623674393, -0.018440045416355133])"
-                        lu_type.TypeNameVector = vectorized_type_name
-                        print("lu_type.TypeNameVector is : ", lu_type.TypeNameVector)
+                        lu_type.TypeNameVector = vectorized_type_name.vector
+                        #print("lu_type.TypeNameVector is : ", lu_type.TypeNameVector)
+                        print(f"Received lu_type.TypeNameVector for {lu_type.TypeID} in {lu_type.TypeName}")
                         
                         # Vectorize Description
                         vectorized_description = AiService.call_vectorization_api(lu_type.TypeID, lu_type.Description)
-                        #vectorized_description = "([0.04257957637310028, -0.0428272970020771, -0.04384923726320267)"
-                        lu_type.DescriptionVector = vectorized_description
+                        lu_type.DescriptionVector = vectorized_description.vector
+                        print(f"Received lu_type.DescriptionVector for {lu_type.TypeID} in {lu_type.TypeName}")
+                        #print("lu_type.DescriptionVector is : ", lu_type.DescriptionVector)
 
-                        print("lu_type.DescriptionVector is : ", lu_type.DescriptionVector)
+                        lu_type.modified_by = 'vectorize_database_records'
+                        lu_type.modified_dt = datetime.now()
 
-                        
                         # Update record in database
                         DataService.update_vectors_luTypeTable_record(connection=connection, typeID=lu_type.TypeID, tableName=tableName, luTypeTable=lu_type)
-                        processedSuccessfully.append(typeID)
-                        break
-    
+                        processedSuccessfully.append(typeID)    
                 cursor.close()
                 connection.close()
 
