@@ -4,6 +4,10 @@ from mysql.connector.cursor import MySQLCursor
 
 from models.lutypetable import LuTypeTable
 from models.config import Config
+import logging
+
+# Setup basic configuration for logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def get_connection(autocommit: bool = True) -> MySQLConnection:
     config = Config()
@@ -21,29 +25,46 @@ def get_connection(autocommit: bool = True) -> MySQLConnection:
         db_conf["ssl_verify_cert"] = True
         db_conf["ssl_verify_identity"] = True
         db_conf["ssl_ca"] = config.ca_path
-    return mysql.connector.connect(**db_conf)
+
+    try:
+        connection = mysql.connector.connect(**db_conf)
+        return connection
+    except mysql.connector.Error as e:
+        logging.error("Error connecting to MySQL Platform: %s", e)
+        return None
 
 def get_count(cursor: MySQLCursor, tableName: str) -> int:
-    cursor.execute(f"SELECT count(*) FROM {tableName}")
-    return cursor.fetchone()[0]  # Accessing the first item in the tuple
+    try:
+        cursor.execute(f"SELECT count(*) FROM {tableName}")
+        count = cursor.fetchone()[0]
+        return count
+    except mysql.connector.Error as e:
+        logging.error("Error fetching count: %s", e)
+        return None
 
 def get_lu_type_table_row_by_id(cursor: MySQLCursor, typeID: int, tableName: str) -> LuTypeTable:
-    cursor.execute(f"SELECT * FROM {tableName} WHERE TypeID = %s", (typeID,))
-    row = cursor.fetchone()
-    if row:
-        return LuTypeTable(
-            TypeID=row[0], 
-            TypeName=row[1],
-            TypeNameVector=row[2],
-            Description=row[3],
-            DescriptionVector=row[4],
-            create_by=row[5],
-            create_dt=row[6],
-            modified_by=row[7],
-            modified_dt=row[8],
-            active_flg=row[9]
-        )
-    else:
+    try:
+        cursor.execute(f"SELECT * FROM {tableName} WHERE TypeID = %s", (typeID,))
+        row = cursor.fetchone()
+        if row:
+            lu_type = LuTypeTable(
+                TypeID=row[0], 
+                TypeName=row[1],
+                TypeNameVector=row[2],
+                Description=row[3],
+                DescriptionVector=row[4],
+                create_by=row[5],
+                create_dt=row[6],
+                modified_by=row[7],
+                modified_dt=row[8],
+                active_flg=row[9]
+            )
+            return lu_type
+        else:
+            logging.warning(f"No record found for ID {typeID}")
+            return None
+    except mysql.connector.Error as e:
+        logging.error("Error fetching record: %s", e)
         return None
 
 if __name__ == "__main__":

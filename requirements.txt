@@ -1,2 +1,4 @@
 python-dotenv==1.0.0
 mysql-connector-python>=8.0,<8.1
+flask
+requests
