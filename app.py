@@ -13,4 +13,4 @@ default_controller = DefaultController(db_service=database_service)
 initialize_routes(app, data_controller=data_controller, default_controller=default_controller)
 
 if __name__ == "__main__":
-    app.run(debug=True, port=9004)
+    app.run(debug=True, port=9009)

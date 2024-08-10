@@ -14,6 +14,12 @@ def initialize_routes(app, default_controller, data_controller):
                      methods=['GET'])
 
     # Vectorize Database Records Route
-    app.add_url_rule("/api/vectorize_database_records", 
-                     view_func=Wrappers.require_api_key(data_controller.vectorize_database_records),
+    app.add_url_rule("/api/vectorize_database_records_for_lu_type_table", 
+                     view_func=Wrappers.require_api_key(data_controller.vectorize_database_records_for_lu_type_table),
                      methods=['POST'])
+    
+    app.add_url_rule("/api/insert_exercise_and_vectorize_into_database", 
+                    view_func=Wrappers.require_api_key(data_controller.insert_exercise_and_vectorize_into_database),
+                    methods=['POST'])
+    
+
