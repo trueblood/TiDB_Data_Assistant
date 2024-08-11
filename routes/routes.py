@@ -5,7 +5,7 @@ from helpers.wrappers import Wrappers
 def initialize_routes(app, default_controller, data_controller):
     # Health Check Route
     app.add_url_rule("/api/health", 
-                     view_func=Wrappers.require_api_key(default_controller.health_check),
+                     view_func=default_controller.health_check,
                      methods=['GET'])
 
     # Get Count Route

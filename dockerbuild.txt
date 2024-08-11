@@ -19,5 +19,5 @@ gcloud artifacts docker images list us-central1-docker.pkg.dev/isentropic-tape-4
 docker stop <container_id>
 docker ps ### gets container id
 
-docker run -p 8080:8080 hello-world-api
+docker run -p 8080:8080 tidb-data-assistant-api
 
