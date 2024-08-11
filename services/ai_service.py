@@ -6,7 +6,7 @@ from models.vectordata import VectorData
 class AiService:
     def call_vectorization_api(id, text):
         api_url = "https://universal-sentence-encoderv4-api-it43s2nu4a-uc.a.run.app/vectorize"
-        headers = {"X-API-KEY": os.getenv("UNIVERSAL-SENTENCE-ENCODER-V4-API")}
+        headers = {"X-API-KEY": "53533f4f-3bb5-4b36-bc95-214f9414b8cc"}
         payload = {
             "id": id,
             "sentence": text
