@@ -74,7 +74,8 @@ class DataService:
             cursor.close()
 
     def insert_exercise_record(connection: MySQLConnection, exercise: Exercise):
-        print("in insert_exercise_record")
+        #print("in insert_exercise_record")
+        #print("exercise_id is ", exercise.exercise_id)
         if not exercise:
             logging.error("No data provided for insertion")
             return None  # Return None to indicate failure
@@ -84,6 +85,7 @@ class DataService:
             # Use a parameterized query to safely insert values and prevent SQL injection
             insert_query = """
                 INSERT INTO exercise (
+                    exercise_id,
                     exercise_name, 
                     exercise_vector, 
                     exercise_location, 
@@ -92,11 +94,13 @@ class DataService:
                     description_vector, 
                     exercise_parent_child_type_id, 
                     create_by, 
+                    create_dt,
                     active_flg
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             
             cursor.execute(insert_query, (
+                exercise.exercise_id,
                 exercise.exercise_name,
                 json.dumps(exercise.exercise_vector),  # Assuming vector needs to be stored as JSON
                 exercise.exercise_location,
@@ -105,19 +109,19 @@ class DataService:
                 json.dumps(exercise.description_vector),  # Assuming vector needs to be stored as JSON
                 exercise.exercise_parent_child_type_id,
                 exercise.create_by,
+                exercise.create_dt,
                 exercise.active_flg
             ))
             connection.commit()  # Commit the transaction
-            exercise_id = cursor.lastrowid  # Retrieve the ID of the newly inserted record
-            logging.info("New exercise record successfully inserted into the database with ID: %s", exercise_id)
-            return exercise_id  # Return the ID of the newly created record
+            logging.info("New exercise record successfully inserted into the database with ID: %s", exercise.exercise_id)
+            return exercise.exercise_id  # Return the ID of the newly created record
         except mysql.connector.Error as err:
             connection.rollback()  # Rollback in case of any error
             logging.error(f"Failed to insert new exercise record. Error: {err}")
             return None  # Return None to indicate failure
         finally:
             cursor.close()
-
+ 
     def update_exercise_record_with_vector(connection: MySQLConnection, exercise: Exercise):
         print("in update_exercise_record_with_vector")
         tableName = "exercise"
@@ -141,3 +145,41 @@ class DataService:
             return False
         finally:
             cursor.close()
+
+    def get_count(self, cursor: MySQLCursor, tableName: str) -> int:
+        try:
+            cursor.execute(f"SELECT count(*) FROM {tableName}")
+            count = cursor.fetchone()[0]
+            return count
+        except mysql.connector.Error as e:
+            logging.error("Error fetching count: %s", e)
+            return None
+        
+    def get_max_exercise(cursor: MySQLCursor, tableName: str) -> Exercise:
+        try:
+            print("table name is ", tableName)
+            cursor.execute(f"SELECT * FROM {tableName} WHERE exercise_id = (SELECT MAX(exercise_id) FROM {tableName})")
+            row = cursor.fetchone()
+            if row:
+                exercise = Exercise(
+                    exercise_id=row[0],
+                    exercise_name=row[1],
+                    exercise_vector=json.loads(row[2]),  # Converting JSON string back to list
+                    exercise_location=row[3],
+                    exercise_type=row[4],
+                    exercise_description=row[5],
+                    description_vector=json.loads(row[6]),  # Converting JSON string back to list
+                    exercise_parent_child_type_id=row[7],
+                    create_by=row[8],
+                    create_dt=row[9],
+                    modified_by=row[10],
+                    modified_dt=row[11],
+                    active_flg=row[12]
+                )
+                return exercise
+            else:
+                logging.warning("No max records found in the exercise table.")
+                return None
+        except mysql.connector.Error as e:
+            logging.error("Error fetching record: %s", e)
+            return None

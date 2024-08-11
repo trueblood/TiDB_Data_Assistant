@@ -73,11 +73,21 @@ class DataController:
         try:
             data = request.get_json()
             candidatesTexts = data.get('candidates_texts')
+            connection = self.db_service.get_connection()
+            cursor = connection.cursor()
+
             if not candidatesTexts:
                 return jsonify({"error": "Missing candidates_texts data"}), 400
 
+            getMostRecentExerciseRecord = DataService.get_max_exercise(cursor=cursor, tableName='exercise')
+            if getMostRecentExerciseRecord:
+                newExerciseID = getMostRecentExerciseRecord.exercise_id + 1
+            else:
+                newExerciseID = 1
+                print("exercise id= newExerciseID", newExerciseID)
+
             exercise = Exercise(
-                exercise_id=None,
+                exercise_id=newExerciseID,
                 exercise_name=str(uuid.uuid4()),  # Random GUID
                 exercise_vector=[0]*512,  # 512-dimensional zero vector
                 exercise_location=1,
@@ -86,6 +96,7 @@ class DataController:
                 description_vector=[0]*512,  # 512-dimensional zero vector
                 exercise_parent_child_type_id=1,
                 create_by="gemini",
+                create_dt=datetime.now(),
                 modified_by="vectorize_database_records",
                 modified_dt=datetime.now(),
                 active_flg=True
@@ -96,7 +107,6 @@ class DataController:
                 print("exercise_id is :", exercise.exercise_id)
                 if not exercise.exercise_id:
                     return jsonify({"error": "Failed to insert exercise record"}), 500
-
                 vectorized_description =  AiService.call_vectorization_api(exercise.exercise_id, exercise.exercise_description)
                 if vectorized_description:
                     exercise.description_vector = vectorized_description.vector
@@ -105,13 +115,11 @@ class DataController:
                     updated = DataService.update_exercise_record_with_vector(connection, exercise)
                     if not updated:
                         return jsonify({"error": "Failed to update exercise record with vector"}), 500
-
             return jsonify({
                 "message": "Exercise record inserted and vectorized successfully",
                 "exercise_id": exercise.exercise_id,
                 "Description": exercise.exercise_description
             }), 200
-
         except Exception as e:
             logging.error(f"An error occurred: {str(e)}")
             return jsonify({"error": str(e)}), 500
