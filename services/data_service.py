@@ -5,6 +5,7 @@ import logging
 from mysql.connector import MySQLConnection, Error as MySQLError
 import json
 from models.exercise import Exercise
+from datetime import datetime
 
 class DataService:
     def __init__(self, db_service):
@@ -183,3 +184,93 @@ class DataService:
         except mysql.connector.Error as e:
             logging.error("Error fetching record: %s", e)
             return None
+        
+    def get_max_lu_type(cursor: MySQLCursor, tableName: str) -> LuTypeTable:
+        try:
+            print("table name is ", tableName)
+            cursor.execute(f"SELECT * FROM {tableName} WHERE TypeID = (SELECT MAX(TypeID) FROM {tableName})")
+            row = cursor.fetchone()
+            if row:
+                luTypeTable = LuTypeTable(
+                    TypeID = row[0],
+                    TypeName = row[1],
+                    TypeNameVector = row[2],
+                    Description = row[3],
+                    DescriptionVector = row[4],
+                    create_by = row[5],
+                    create_dt = row[6],
+                    modified_by = row[7],
+                    modified_dt = row[8],
+                    active_flg = row[9]
+                )
+                return luTypeTable
+            else:
+                logging.warning("No max records found in the exercise table.")
+                return None
+        except mysql.connector.Error as e:
+            logging.error("Error fetching record: %s", e)
+            return None
+        
+    def insert_lu_type_record(connection: MySQLConnection, lu_type_table: LuTypeTable, tableName: str):
+        if not lu_type_table:
+            logging.error("No data provided for insertion")
+            return None  # Return None to indicate failure
+
+        cursor = connection.cursor()
+        try:
+            # Use a parameterized query to safely insert values and prevent SQL injection
+            insert_query = f"""
+                INSERT INTO {tableName} (
+                    TypeID,
+                    TypeName, 
+                    Description, 
+                    create_by, 
+                    create_dt, 
+                    active_flg,
+                    DescriptionVector,
+                    TypeNameVector
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(insert_query, (
+                lu_type_table.TypeID,
+                lu_type_table.TypeName,
+                lu_type_table.Description,
+                lu_type_table.create_by,
+                lu_type_table.create_dt,
+                lu_type_table.active_flg,
+                json.dumps(lu_type_table.DescriptionVector),
+                json.dumps(lu_type_table.TypeNameVector)
+            ))
+            connection.commit()  # Commit the transaction
+            logging.info(f"New LU type record successfully inserted into the table {tableName} with ID: {lu_type_table.TypeID}")
+            return lu_type_table.TypeID  # Return the ID of the newly created record
+        except mysql.connector.Error as err:
+            connection.rollback()  # Rollback in case of any error
+            logging.error(f"Failed to insert new LU type record. Error: {err}")
+            return None  # Return None to indicate failure
+        finally:
+            cursor.close()
+ 
+    def update_lu_type_table_record_with_vector(connection: MySQLConnection, lu_type_table: LuTypeTable, tableName: str):
+        print("in update_lu_type_table_record_with_vector")
+        cursor = connection.cursor()
+        try:
+            # Convert list vectors to JSON strings for storage
+            descriptionVector_str = json.dumps(lu_type_table.DescriptionVector.vector)
+            typeNameVector_str = json.dumps(lu_type_table.TypeNameVector.vector)
+            # Use a parameterized query to safely insert values and prevent SQL injection
+            update_query = f"""
+                UPDATE {tableName}
+                SET TypeNameVector = %s, DescriptionVector = %s, modified_by = %s, modified_dt = %s
+                WHERE TypeID = %s
+            """
+            cursor.execute(update_query, (typeNameVector_str, descriptionVector_str, "vectorize_database_records", datetime.now(), lu_type_table.TypeID))
+            connection.commit()  # Commit the transaction
+            logging.info(f"Record successfully updated in database for lu_type_table.TypeID {lu_type_table.TypeID} in TableName {tableName}")
+            return True
+        except MySQLError as err:
+            connection.rollback()  # Rollback in case of any error
+            logging.error(f"Failed to update exercise.exercise_id {lu_type_table.TypeID} in TableName {tableName}. Error: {err}")
+            return False
+        finally:
+            cursor.close()

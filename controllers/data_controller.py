@@ -104,7 +104,7 @@ class DataController:
 
             with self.db_service.get_connection() as connection:
                 exercise.exercise_id = DataService.insert_exercise_record(connection, exercise)
-                print("exercise_id is :", exercise.exercise_id)
+            #    print("exercise_id is :", exercise.exercise_id)
                 if not exercise.exercise_id:
                     return jsonify({"error": "Failed to insert exercise record"}), 500
                 vectorized_description =  AiService.call_vectorization_api(exercise.exercise_id, exercise.exercise_description)
@@ -124,49 +124,74 @@ class DataController:
             logging.error(f"An error occurred: {str(e)}")
             return jsonify({"error": str(e)}), 500
         
-    # def insert_exercise_and_vectorize_into_database():
-    #     try:
-    #         data = request.get_json()
-    #         candidatesTexts = data.get('candidates_texts')
-    #         if candidatesTexts:
-    #             exercise = Exercise(
-    #                 exercise_name=None,
-    #                 exercise_vector= None,
-    #                 exercise_location=1,
-    #                 exercise_type=1,
-    #                 exercise_description="A series of stretching exercises aimed at increasing flexibility.",
-    #                 description_vector=None,
-    #                 exercise_parent_child_type_id=1,
-    #                 create_by="gemini",
-    #                 create_dt=datetime.now() 
-    #             )
-    #             if exercise:
-    #                 connection = self.db_service.get_connection()
-    #                 exercise.exercise_id =  DatabaseService.insert_exercise_record(connection, exercise)
+    def insert_lu_type_table_and_vectorize_into_database(self):
+        print("in insert_lu_type_table_and_vectorize_into_database")
+        try:
+            data = request.get_json()
+            typeName = data.get('typeName')
+            typeDescription = data.get('typeDescription')
+            tableName = data.get('tableName')
+            createdBy = data.get('createBy')
+            connection = self.db_service.get_connection()
+            cursor = connection.cursor()
 
-    #                 vectorized_description = AiService.call_vectorization_api(exercise.exercise_id, exercise.exercise_description)
-    #                 exercise.description_vector = vectorized_description
+            # print("typename is ", typeName)
+            # print("typeDescription is ", typeDescription)
+            # print("tableName is ", tableName)
+            # print("createdBy is ", createdBy)
 
-    #                 # Update record in database
 
-    #                 #DataService.update_vectors_luTypeTable_record(connection=connection, typeID=lu_type.TypeID, tableName=tableName, luTypeTable=lu_type)
-    #             cursor.close()
-    #             connection.close()
+            if not tableName:
+                return jsonify({"error": "Missing tableName data"}), 400
 
-    #             return jsonify({"exerise record inserted and vectorized successfully": exercise.exercise_id , "Description": exercise.exercise_description}), 200
-    #         else:
-    #             return jsonify({"error": "Missing tableName or typeIDs"}), 400
-    #     except Exception as e:
-    #         return jsonify({"error": str(e)}), 400
+            getMostRecentLuTypeRecord = DataService.get_max_lu_type(cursor=cursor, tableName=tableName)
+
+            if getMostRecentLuTypeRecord:
+                newTypeID = getMostRecentLuTypeRecord.TypeID + 1
+              #  print("newTypeID", newTypeID)
+            else:
+                newTypeID = 1
+
+          #  print("newTypeID", newTypeID)
+
+            luTypeTable = LuTypeTable(
+                TypeID = newTypeID,
+                TypeName = typeName,
+                TypeNameVector = [0]*512,  # 512-dimensional zero vector
+                Description = typeDescription,
+                DescriptionVector = [0]*512,  # 512-dimensional zero vector
+                create_by = createdBy,
+                create_dt = datetime.now(),
+                modified_by="vectorize_database_records",
+                modified_dt=datetime.now(),
+                active_flg = True
+            )
+
+            with self.db_service.get_connection() as connection:
+                luTypeTable.TypeID = DataService.insert_lu_type_record(connection, luTypeTable, tableName)
+             #   print("typeid is :", luTypeTable.TypeID)
+                if not luTypeTable.TypeID:
+                    return jsonify({"error": "Failed to insert luTypeTable record"}), 500
+                
+               # print("ready to vectorize data")
+                vectorized_description = AiService.call_vectorization_api(luTypeTable.TypeID, luTypeTable.Description)
+                vectorized_type_name = AiService.call_vectorization_api(luTypeTable.TypeID, luTypeTable.TypeName)
+
+                if vectorized_description and vectorized_type_name:
+                    luTypeTable.DescriptionVector = vectorized_description
+                    luTypeTable.TypeNameVector = vectorized_type_name
+                  #  print("luTypeTable.DescriptionVector is ", luTypeTable.DescriptionVector.vector)
+                 #   print("luTypeTable.TypeNameVector is ", luTypeTable.TypeNameVector.vector)
+                    updated = DataService.update_lu_type_table_record_with_vector(connection, luTypeTable, tableName)
+                    if not updated:
+                        return jsonify({"error": "Failed to update luTypeTable record with vectors"}), 500
+            return jsonify({
+                "message": "luTypeTable record inserted and vectorized successfully",
+                "TypeID": luTypeTable.TypeID,
+                "TypeName": luTypeTable.TypeName,
+                "Description": luTypeTable.Description,
+            }), 200
+        except Exception as e:
+            logging.error(f"An error occurred: {str(e)}")
+            return jsonify({"error": str(e)}), 500
         
-    
-
-    #if __name__ == "__main__":
-        # typeID = 1
-        # tableName = 'lu_emotion_type'
-        # connection = DatabaseService.get_connection()
-        # cursor = connection.cursor()
-        # lu_type = get_lu_type_table_row_by_id(cursor, typeID, tableName)
-        # print(lu_type.to_dict())
-        # cursor.close()
-        # connection.close()
