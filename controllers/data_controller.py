@@ -89,11 +89,11 @@ class DataController:
             exercise = Exercise(
                 exercise_id=newExerciseID,
                 exercise_name=str(uuid.uuid4()),  # Random GUID
-                exercise_vector=[0]*512,  # 512-dimensional zero vector
+                exercise_vector=[0]*384,  # 512-dimensional zero vector
                 exercise_location=1,
-                exercise_type=1,
+                exercise_type=28,
                 exercise_description=candidatesTexts,
-                description_vector=[0]*512,  # 512-dimensional zero vector
+                description_vector=[0]*384,  # 512-dimensional zero vector
                 exercise_parent_child_type_id=1,
                 create_by="gemini",
                 create_dt=datetime.now(),

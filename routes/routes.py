@@ -21,3 +21,9 @@ def initialize_routes(app, default_controller, data_controller):
     app.add_url_rule("/api/insert_lu_type_table_and_vectorize_into_database", 
                     view_func=Wrappers.require_api_key(data_controller.insert_lu_type_table_and_vectorize_into_database),
                     methods=['POST'])
+    
+    app.add_url_rule("/api/insert_exercise_and_vectorize_into_database", 
+                view_func=Wrappers.require_api_key(data_controller.insert_exercise_and_vectorize_into_database),
+                methods=['POST'])
+
+    
