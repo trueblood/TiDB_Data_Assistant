@@ -228,15 +228,12 @@ class DataController:
                     luTypeTable.DescriptionVector = vectorized_description
                     luTypeTable.TypeNameVector = vectorized_type_name
                   #  print("luTypeTable.DescriptionVector is ", luTypeTable.DescriptionVector.vector)
-                 #   print("luTypeTable.TypeNameVector is ", luTypeTable.TypeNameVector.vector)
                     updated = DataService.update_lu_type_table_record_with_vector(connection, luTypeTable, tableName)
                     if not updated:
                         return jsonify({"error": "Failed to update luTypeTable record with vectors"}), 500
+                
             return jsonify({
-                "message": "luTypeTable record inserted and vectorized successfully",
-                "TypeID": luTypeTable.TypeID,
-                "TypeName": luTypeTable.TypeName,
-                "Description": luTypeTable.Description,
+                "message": "Journaling helps to improve mental health",
             }), 200
         except Exception as e:
             logging.error(f"An error occurred: {str(e)}")
