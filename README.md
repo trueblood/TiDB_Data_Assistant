@@ -1,8 +1,4 @@
 # TiDB_Data_Assistant
-TiDB Data Assistant for talking to my AIs and then pulling data from and to TiDB
-
-
-# TiDB_Data_Assistant
 
 Welcome to the **TiDB_Data_Assistant**, the robust API backend for the **EmbraceAI_FrontEnd** application. This project is designed to handle complex data processing tasks involving emotion recognition and mindfulness exercise recommendation. It integrates with advanced AI models, including convolutional neural networks (CNNs), encoding models, and reinforcement learning (RL) models.
 
