@@ -6,6 +6,7 @@ from mysql.connector import MySQLConnection, Error as MySQLError
 import json
 from models.exercise import Exercise
 from datetime import datetime
+from models.emotional_state import EmotionalState as EmotionalState
 
 class DataService:
     def __init__(self, db_service):
@@ -274,3 +275,74 @@ class DataService:
             return False
         finally:
             cursor.close()
+
+    def insert_emotional_state_record(connection: MySQLConnection, emotionalState):
+        print("in insert_emotional_state_record")
+        tableName = "user_emotional_state"
+        cursor = connection.cursor()
+        try:
+            # Convert vectors to list if not already in JSON serializable format
+            emotion_vector = json.dumps(emotionalState.emotion_vector)
+            location_vector = json.dumps(emotionalState.location_vector)
+#think of it as the dog agent in the RL AI, just really wants to rest, but he cannot rest unless he picks the most effective mindfuless exercise, that will make the user stress free longer. that dog gets high off of being able to rest. RL is all about getting high
+            #print("location_vector is  ", location_vector)
+
+            # Use a parameterized query to safely insert values and prevent SQL injection
+            insert_query = f"""
+                INSERT INTO {tableName} (
+                    state_id,
+                    user_id, 
+                    emotion_vector, 
+                    location_vector, 
+                    create_by,
+                    create_dt, 
+                    active_flg
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(insert_query, (
+                emotionalState.state_id,
+                emotionalState.user_id,
+                emotionalState.emotion_vector,
+                emotionalState.location_vector,
+                emotionalState.create_by,
+                emotionalState.create_dt.strftime('%Y-%m-%d %H:%M:%S'),  # formatting datetime for SQL
+                emotionalState.active_flg
+            ))
+            connection.commit()  # Commit the transaction
+            logging.info(f"New emotional state record successfully inserted into the table {tableName} with ID: {emotionalState.state_id}")
+            return emotionalState.state_id  # Return the ID of the newly created record
+            return None
+        except mysql.connector.Error as err:
+            connection.rollback()  # Rollback in case of any error
+            logging.error(f"Failed to insert new emotional state record. Error: {err}")
+            return None  # Return None to indicate failure
+        finally:
+            cursor.close()
+
+    def get_max_user_state(cursor: MySQLCursor, tableName: str) -> EmotionalState:
+        try:
+            print("table name is ", tableName)
+            cursor.execute(f"SELECT * FROM {tableName} WHERE state_id = (SELECT MAX(state_id) FROM {tableName})")
+            row = cursor.fetchone()
+            if row:
+                emotionalState = EmotionalState(
+                    state_id = row[0],
+                    user_id = row[1],
+                    emotion_vector = row[2],
+                    location_vector = row[3],
+                    create_dt = row[4],
+                    create_by = row[5],
+                    modified_by = row[6],
+                    modified_dt = row[7],
+                    active_flg = row[8]
+                )
+                return emotionalState
+            else:
+                logging.warning("No max records found in the exercise table.")
+                return None
+        except mysql.connector.Error as e:
+            logging.error("Error fetching record: %s", e)
+            return None
+        
+
+    
