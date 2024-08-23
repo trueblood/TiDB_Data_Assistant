@@ -6,7 +6,7 @@ from models.vectordata import VectorData
 class AiService:
     def call_vectorization_api(id, text):
         api_url = "https://universal-sentence-encoderv4-api-it43s2nu4a-uc.a.run.app/vectorize"
-        headers = {"X-API-KEY": "53533f4f-3bb5-4b36-bc95-214f9414b8cc"}
+        headers = {"X-API-KEY": ""}
         payload = {
             "id": id,
             "sentence": text
@@ -32,7 +32,7 @@ class AiService:
     
     def call_image_classification_api(id, text):
         api_url = "https://universal-sentence-encoderv4-api-it43s2nu4a-uc.a.run.app/vectorize"
-        headers = {"X-API-KEY": "53533f4f-3bb5-4b36-bc95-214f9414b8cc"}
+        headers = {"X-API-KEY": ""}
         payload = {
             "id": id,
             "sentence": text
@@ -53,7 +53,7 @@ class AiService:
 
     def call_image_classification_api(stateID):
         api_url = "https://universal-sentence-encoderv4-api-it43s2nu4a-uc.a.run.app/vectorize"
-        headers = {"X-API-KEY": "53533f4f-3bb5-4b36-bc95-214f9414b8cc"}
+        headers = {"X-API-KEY": ""}
         payload = {
             "stateID": stateID,
         }
